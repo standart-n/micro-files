@@ -10,18 +10,23 @@ function __construct() {
 	self::write(date("Ymd")." ".date("H:i:s")." ".time());
 }
 
-function write($line="") {
+function __destruct() {
+	//self::write("...");
+	//self::save();
+}
+
+public static function write($line="") {
 	self::$text.=$line."\r\n";
 	self::save();
 }
 
-function clear() {
+public static function clear() {
 	if (file_exists(self::$path)) {
 		unlink(self::$path);
 	}
 }
 
-function save() {
+public static function save() {
 	file_put_contents(self::$path,self::$text);
 }
 
