@@ -1,27 +1,24 @@
 <?php class start extends sn {
 
-function __construct() {
-	
-	//innerHTML("#main","site/main.tpl");
-	//echo html();	
-	
-	/*zip("test.zip");
-	addToZip("sn-system/conf","");
-	addToZip("sn-system/core/","sn-system");
-	addToZip("sn-system/external/./");*/
-	
-	/*if (query("SELECT * FROM `zcom` LIMIT 0,30",$ms)) {
-		foreach ($ms as $r) {
-			echo $r->caption;
-		}
-	}*/
-	
-	assign('test','это тестовая страница');
-	$test=fetch("test.tpl");
-	assign('title','standart-n');
-	load(fetch("index.tpl"));
-	innerHTML("#main",$test);
-	echo html();
+function __construct() { 
+	header("Content-Type: text/html; charset=utf-8");
+	self::engine();
 }
+
+function engine() {
+	if (self::getControls()) {
+		import::engine();
+	}
+}
+
+function getControls() {
+	foreach (array("url","import","console") as $key) {
+		if (!file_exists(project."/controls/".$key.".php")) return false;
+		require_once(project."/controls/".$key.".php");
+		sn::cl($key);
+	}
+	return true;	
+}
+
 
 } ?>
