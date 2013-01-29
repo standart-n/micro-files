@@ -2,21 +2,19 @@
 
 public static $id;
 public static $j;
-public static $path;
 public static $records;
 public static $message;
+public static $url;
 public static $path;
 public static $request;
 
 function __construct() {
-	self::$j=array("response"=>array("time"=>time(),"answer"=>"NO"));
+	self::$j=array("response"=>array("answer"=>"NO"));
 	self::$id=0;
 }
 
-public static function search() {
+public static function search($f='') {
 	if (self::client()) {
-		console::write('path: '.self::$path);
-		console::write('------------------');
 		chdir(self::$path);
 		$dir=opendir(".");
 		while ($d=readdir($dir)) { 
@@ -24,12 +22,9 @@ public static function search() {
 				if (preg_match("/[0-9]+\.txt/i",$d)) {
 					$name=preg_replace("/([0-9]+)\.txt/i","$1",$d);
 					$key=self::salt($name);
-					console::write('file: '.$d);
-					console::write('name: '.$name);
-					console::write('key: '.$key);
-					$f=file_get_contents(self::$request."?action=get"."&key=".$key."&name=".$name);
+					$f=@file_get_contents(self::$request."?action=get"."&key=".$key."&name=".$name);
+					// echo self::$request."?action=get"."&key=".$key."&name=".$name;
 					if ($f!='') {
-						console::write('response: '.$f);
 						$j=json_decode($f);
 						if (isset($j->response)) {
 							if (isset($j->response->answer)) {
@@ -51,10 +46,11 @@ public static function get() {
 		if ((isset(url::$key)) && (isset(url::$name))) {
 			if ((url::$key!='') && (url::$name!='')) {
 				if (url::$key==self::salt(url::$name)) {
-					$f=file_get_contents(self::$request.url::$name);
+					self::$url=self::$request.url::$name.".txt";					
+					$f=@file_get_contents(self::$url);
 					if ($f!='') {
 						$f=toWIN($f);
-						if (file_put_contents(self::$path."/".url::$name,$f)) {
+						if (file_put_contents(self::$path."/".url::$name.".txt",$f)) {
 							self::$j['response']['answer']='OK';
 						}
 					}
@@ -62,6 +58,8 @@ public static function get() {
 			}
 		}
 	}
+	self::$j['response']['url']=self::$url;
+	self::$j['response']['time']=time();
 }
 
 public static function salt($name="") {
@@ -69,17 +67,15 @@ public static function salt($name="") {
 }
 
 public static function client() {
-	$p=project."/settings/options.json";
+	$p=project."/settings/client.json";
 	if (file_exists($p)) { $f=file_get_contents($p); }	
 	if ($f!="") { 
 		$j=json_decode($f);
-		if (isset($j->client)) {
-			if ((isset($j->client->request)) && (isset($j->client->path))) {
-				if (($j->client->request!='') && ($j->client->path!='')) {
-					self::$request=$j->client->request;
-					self::$path=$j->client->path;
-					return true;
-				}
+		if ((isset($j->request)) && (isset($j->path))) {
+			if (($j->request!='') && ($j->path!='')) {
+				self::$request=$j->request;
+				self::$path=$j->path;
+				return true;
 			}
 		}
 	}
@@ -87,17 +83,15 @@ public static function client() {
 }
 
 public static function server() {
-	$p=project."/settings/options.json";
+	$p=project."/settings/server.json";
 	if (file_exists($p)) { $f=file_get_contents($p); }	
 	if ($f!="") { 
 		$j=json_decode($f);
-		if (isset($j->server)) {
-			if ((isset($j->server->request)) && (isset($j->server->path))) {
-				if (($j->server->request!='') && ($j->server->path!='')) {
-					self::$request=$j->server->request;
-					self::$path=$j->server->path;
-					return true;
-				}
+		if ((isset($j->request)) && (isset($j->path))) {
+			if (($j->request!='') && ($j->path!='')) {
+				self::$request=$j->request;
+				self::$path=$j->path;
+				return true;
 			}
 		}
 	}
