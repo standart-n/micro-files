@@ -1,131 +1,112 @@
 <?php class app extends sn {
 
-public static $search;
-public static $src;
-public static $dst;
-public static $prev;
-public static $next;
-public static $skip;
-public static $page;
-public static $pages;
-public static $limit;
-public static $records;
 public static $id;
+public static $j;
+public static $path;
+public static $records;
 public static $message;
+public static $path;
+public static $request;
 
 function __construct() {
+	self::$j=array("response"=>array("time"=>time(),"answer"=>"NO"));
 	self::$id=0;
-	self::$message='';
-	self::$prev=false;
-	self::$next=false;
-	self::$skip=0;
-	self::$page=1;
-	self::$limit=20;
 }
 
-function claims($pc=array(),$i=-1) {
-	if (query(sql::claims(),$ms)) {
-		foreach ($ms as $r) { $i++;
-			$pc[$i]['id']=$r->id;
-			$pc[$i]['caption']=toUTF($r->caption);
-			$pc[$i]['msg']=$r->msg;
-			$pc[$i]['email']=$r->email;
-			$pc[$i]['skype']=$r->skype;
-			$pc[$i]['icq']=$r->icq;
-			$pc[$i]['site']=$r->site;
-			$pc[$i]['city']=toUTF($r->city);
-			$pc[$i]['country']=$r->country;
-			$pc[$i]['status']=toUTF($r->status);
-			$pc[$i]['comment']=$r->comment;
-			$pc[$i]['post_dt']=self::setDate($r->post_dt);
-			foreach (array("email","skype","icq","city","status","site") as $key) {
-				if ($pc[$i][$key]=="") { $pc[$i][$key]="-"; }
-			}	
-			if ($r->status=="New") {
-				$pc[$i]['line_class']="error";
-			} else {
-				$pc[$i]['line_class']="";
+public static function search() {
+	if (self::client()) {
+		console::write('path: '.self::$path);
+		console::write('------------------');
+		chdir(self::$path);
+		$dir=opendir(".");
+		while ($d=readdir($dir)) { 
+			if (is_file($d)) { 
+				if (preg_match("/[0-9]+\.txt/i",$d)) {
+					$name=preg_replace("/([0-9]+)\.txt/i","$1",$d);
+					$key=self::salt($name);
+					console::write('file: '.$d);
+					console::write('name: '.$name);
+					console::write('key: '.$key);
+					$f=file_get_contents(self::$request."?action=get"."&key=".$key."&name=".$name);
+					if ($f!='') {
+						console::write('response: '.$f);
+						$j=json_decode($f);
+						if (isset($j->response)) {
+							if (isset($j->response->answer)) {
+								if ($j->response->answer=='OK') {
+									unlink($d);
+								}
+							}
+						}
+					}
+				} 
 			}
 		}
-		return $pc;
+		closedir($dir);
+	}
+}
+
+public static function get() {
+	if (self::server()) {
+		if ((isset(url::$key)) && (isset(url::$name))) {
+			if ((url::$key!='') && (url::$name!='')) {
+				if (url::$key==self::salt(url::$name)) {
+					$f=file_get_contents(self::$request.url::$name);
+					if ($f!='') {
+						$f=toWIN($f);
+						if (file_put_contents(self::$path."/".url::$name,$f)) {
+							self::$j['response']['answer']='OK';
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+public static function salt($name="") {
+	return sha1(date("dj.STANDART-N").$name);
+}
+
+public static function client() {
+	$p=project."/settings/options.json";
+	if (file_exists($p)) { $f=file_get_contents($p); }	
+	if ($f!="") { 
+		$j=json_decode($f);
+		if (isset($j->client)) {
+			if ((isset($j->client->request)) && (isset($j->client->path))) {
+				if (($j->client->request!='') && ($j->client->path!='')) {
+					self::$request=$j->client->request;
+					self::$path=$j->client->path;
+					return true;
+				}
+			}
+		}
 	}
 	return false;
 }
 
-function edit() {
-	if ((isset(url::$id)) && (isset(url::$message))) {
-		if ((intval(url::$id)>-1) && (intval(url::$id)<10000)) {
-			if (query(sql::edit())) {
-				return true;
+public static function server() {
+	$p=project."/settings/options.json";
+	if (file_exists($p)) { $f=file_get_contents($p); }	
+	if ($f!="") { 
+		$j=json_decode($f);
+		if (isset($j->server)) {
+			if ((isset($j->server->request)) && (isset($j->server->path))) {
+				if (($j->server->request!='') && ($j->server->path!='')) {
+					self::$request=$j->server->request;
+					self::$path=$j->server->path;
+					return true;
+				}
 			}
 		}
 	}
 	return false;
 }
 
-function setDate($k,$type="day-month") { 
-	$s=""; $m=0; $mn=""; $i=0; $t="";
-	$dt=explode(" ",$k); $d=$dt[0]; $d=str_replace(".","-",$d); $d=str_replace(".","-",$d);
-	$di=explode("-",$d); $y=$di[0];
-	if (isset($dt[1])) {
-		$t=$dt[1];
-	}
-	if (isset($di[1])) { $m=intval($di[1]); }
-	if (isset($di[2])) { $i=intval($di[2]); }
-	switch ($m) {
-		case 1: $mn="янв"; break;
-		case 2: $mn="фев"; break;
-		case 3: $mn="мар"; break;
-		case 4: $mn="апр"; break;
-		case 5: $mn="мая"; break;
-		case 6: $mn="июня"; break;
-		case 7: $mn="июля"; break;
-		case 8: $mn="авг"; break;
-		case 9: $mn="сен"; break;
-		case 10: $mn="окт"; break;
-		case 11: $mn="ноя"; break;
-		case 12: $mn="дек"; break;
-	}
-	if ($i==0) { $i=""; }
-	switch ($type) {
-		case "day-month": 			$s=trim($i." ".$mn); break;
-		case "day-month-time": 		$s=trim($i." ".$mn." ".$t); break;
-		case "day-month-year": 		$s=trim($i." ".$mn." ".$y); break;
-	}
-	if ($s=="") { $s="-"; }
-	return $s;
-}
 
-function pagination($list=array(),$i=0) {
-	if (isset(url::$page)) { self::$page=url::$page; }
-	if (query(sql::pagination(),$ms)) {
-		foreach ($ms as $r) {
-			self::$records=$r->count_id;
-		}
-	}
-	self::$pages=ceil(self::$records/self::$limit);
-	self::$skip=(self::$page-1)*self::$limit;
-	
-	if (self::$page<1) { self::$page=1; }
-	if (self::$page>self::$pages) { self::$page=self::$pages; }
-	
-	if (((self::$page-6)>0) && !((self::$page+3)<(self::$pages+1))) { $list[$i]['page']=self::$page-6; $list[$i]['hidden']=true; $i++; }
-	if (((self::$page-5)>0) && !((self::$page+2)<(self::$pages+1))) { $list[$i]['page']=self::$page-5; $list[$i]['hidden']=true; $i++; }
-	if (((self::$page-4)>0) && !((self::$page+1)<(self::$pages+1))) { $list[$i]['page']=self::$page-4; $list[$i]['hidden']=true; $i++; }
-	if ((self::$page-3)>0) { $list[$i]['page']=self::$page-3; $list[$i]['hidden']=true; $i++; }
-	if ((self::$page-2)>0) { $list[$i]['page']=self::$page-2; $list[$i]['hidden']=true; $i++; }
-	if ((self::$page-1)>0) { $list[$i]['page']=self::$page-1; $list[$i]['hidden']=true; $i++; }
-	$list[$i]['page']=self::$page; $list[$i]['active']=true; $i++;
-	if ((self::$page+1)<(self::$pages+1)) { $list[$i]['page']=self::$page+1; $list[$i]['hidden']=true; $i++; }
-	if ((self::$page+2)<(self::$pages+1)) { $list[$i]['page']=self::$page+2; $list[$i]['hidden']=true; $i++; }
-	if ((self::$page+3)<(self::$pages+1)) { $list[$i]['page']=self::$page+3; $list[$i]['hidden']=true; $i++; }
-	if (((self::$page+4)<(self::$pages+1)) && !((self::$page-1)>0)) { $list[$i]['page']=self::$page+4; $list[$i]['hidden']=true; $i++; }
-	if (((self::$page+5)<(self::$pages+1)) && !((self::$page-2)>0)) { $list[$i]['page']=self::$page+5; $list[$i]['hidden']=true; $i++; }
-	if (((self::$page+6)<(self::$pages+1)) && !((self::$page-3)>0)) { $list[$i]['page']=self::$page+6; $list[$i]['hidden']=true; $i++; }
-
-	if ((self::$page-1)>0) { self::$prev=true; }
-	if ((self::$page+1)<(self::$pages+1)) { self::$next=true; }
-	return $list;
+public static function data($p="",$f="") {
+	return false;
 }
 
 } ?>

@@ -1,19 +1,29 @@
 <?php class url extends sn {
 	
 public static $key;
+public static $name;
+public static $path;
 public static $action;
 public static $callback;
 public static $page;
 public static $id;
 public static $message;
-public static $login;
-public static $password;
 
 
 function __construct() {
 
+	self::$action='search';
+
 	if (isset($_REQUEST["key"])) {
 		self::$key=trim(strval($_REQUEST["key"]));
+	}
+
+	if (isset($_REQUEST["name"])) {
+		self::$name=trim(strval($_REQUEST["name"]));
+	}
+
+	if (isset($_REQUEST["path"])) {
+		self::$path=trim(strval($_REQUEST["path"]));
 	}
 
 	if (isset($_REQUEST["page"])) {
@@ -24,12 +34,6 @@ function __construct() {
 	}
 	if (isset($_REQUEST["callback"])) {
 		self::$callback=trim(strval($_REQUEST["callback"]));
-	}
-	if (isset($_REQUEST["login"])) {
-		self::$login=strtolower(trim(strval($_REQUEST["login"])));
-	}
-	if (isset($_REQUEST["password"])) {
-		self::$password=trim(strval($_REQUEST["password"]));
 	}
 
 	if (isset($_REQUEST["id"])) {
